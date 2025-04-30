@@ -80,6 +80,7 @@ class Waymo(dataset.Dataset):
         self.point_range_filter = [-74.88, -74.88, -2, 74.88, 74.88, 4]
         self.data_infos = read_pickle(os.path.join(data_root, info_file))
         self.sorted_ids = range(len(self.data_infos))
+        self.preloaded = {}
 
     def preprocess(self, input):
         image_transform = transforms.Compose([
@@ -99,26 +100,33 @@ class Waymo(dataset.Dataset):
         raise NotImplementedError("Dataset:get_list")
 
     def load_query_samples(self, sample_list):
-        # TODO: Load queries into memory, if needed
-        pass
+        import pdb
+        pdb.set_trace()
+        for id in sample_list:
+            item = self.get_item(id)
+            data = {'pts': item['pts'],
+                         'images': item['images'],
+                         'calib_info': item['calib_info'],
+                         'image_info': item['image_info']}
+            label = {'gt_labels': item['gt_labels'],
+                           'calib_info': item['calib_info'],
+                           'gt_names': item['gt_names'],
+                           }
+            self.preloaded[id] = (data, label)
 
     def unload_query_samples(self, sample_list):
-        # TODO: Unload queries from memory, if needed
-        pass
+        import pdb
+        pdb.set_trace()
+        for sample in sample_list:
+            del self.preloaded[sample]
 
     def get_samples(self, id_list):
         data = []
         labels = []
         for id in id_list:
-            item = self.get_item(id)
-            data.append({'pts': item['pts'],
-                         'images': item['images'],
-                         'calib_info': item['calib_info'],
-                         'image_info': item['image_info']})
-            labels.append({'gt_labels': item['gt_labels'],
-                           'calib_info': item['calib_info'],
-                           'gt_names': item['gt_names'],
-                           })
+            item = self.preloaded[id]
+            data.append(item[0])
+            labels.append(item[1]) 
         return data, labels
 
     def get_item(self, id):
